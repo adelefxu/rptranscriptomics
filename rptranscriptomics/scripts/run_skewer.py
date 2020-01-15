@@ -52,9 +52,9 @@ for smp in sample:
     job_id = sb_sub_msg.strip().replace("Submitted batch job ", "")
     
     with open(os.path.join(args.log_dir, f"{smp}_{args.sb_name}_skewer_{job_id}.config"), 'w') as config_file:
-    git_version = str(subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip())
-    configs = {"git version": git_version, "arguments": vars(args), "sbatch command line": sb_cmd}
-    json.dump(configs, config_file, indent=4)
+        git_version = str(subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip())
+        configs = {"git version": git_version, "arguments": vars(args), "sbatch command line": sb_cmd}
+        json.dump(configs, config_file, indent=4)
     
     
     
