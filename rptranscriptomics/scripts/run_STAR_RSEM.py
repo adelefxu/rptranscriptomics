@@ -40,11 +40,12 @@ sb_defaults = "-e %x-%j.e -o %x-%j.o -A mbarna -p batch"
 
 # for each sample, make output subdirectory and call skewer
 for smp in sample:
-    os.makedirs(os.path.join(args.out_dir, smp), exist_ok=True)
+    smp_dir = os.path.join(args.out_dir, smp)
+    os.makedirs(smp_dir, exist_ok=True)
     pair1 = glob.glob(os.path.join(args.trimmed_dir, smp, "*-trimmed-pair1.fastq.gz"))[0]
     pair2 = glob.glob(os.path.join(args.trimmed_dir, smp, "*-trimmed-pair2.fastq.gz"))[0]
     
-    call_script = f"{SR_script} {pair1} {pair2} {STARgenomeDir} {RSEMoutprefix} {dataType} {nThreadsSTAR} {nThreadsRSEM}"
+    call_script = f"{SR_script} {pair1} {pair2} {STARgenomeDir} {RSEMoutprefix} {dataType} {nThreadsSTAR} {nThreadsRSEM} {smp_dir} {os.path.join(smp_dir, smp+"_")} {smp+"_"}"
     
     sb_cmd = f"sbatch {sb_defaults} -D {args.log_dir} -J {smp}_{args.sb_name} -t {args.sb_time} --mem={args.sb_mem} -c {args.sb_cpus} {call_script}"
     sb_sub_msg = subprocess.check_output(sb_cmd, shell=True).decode('ascii')

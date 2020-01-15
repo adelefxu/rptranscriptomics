@@ -6,13 +6,14 @@
 # AX: changes from original
 # - added code to load necessary modules
 # - removed STARparsMeta from STAR command call b/c never initialized
+# - added command line arguments for output directory, output file prefix (full path), and output file short prefix
 
 # Modified from https://github.com/ENCODE-DCC/long-rna-seq-pipeline/blob/master/DAC/STAR_RSEM.sh
 # Commit 313830c7c10e8567091131c40bdec2b9477627e0
 
 # STAR mapping / RSEM quantification pipeline
-# usage: from an empty working directory, run
-# ./STAR_RSEM.sh (read1) (read2 or "") (STARgenomeDir) (RSEMrefDir) (dataType) (nThreadsSTAR) (nThreadsRSEM)
+# usage: run:
+# ./STAR_RSEM.sh (read1) (read2 or "") (STARgenomeDir) (RSEMrefDir) (dataType) (nThreadsSTAR) (nThreadsRSEM) (output directory) (output prefix)
 
 # input: gzipped fastq file read1 [read2 for paired-end] 
 #        STAR genome directory, RSEM reference directory - prepared with STAR_RSEM_prep.sh script
@@ -23,22 +24,28 @@ RSEMrefDir=$4 # This needs the "RSEMref" suffix if prepared by the prep script
 dataType=$5 # RNA-seq type, possible values: str_SE str_PE unstr_SE unstr_PE
 nThreadsSTAR=$6 # number of threads for STAR
 nThreadsRSEM=$7 # number of threads for RSEM
+outdir=$8
+outprefix=$9
+shortprefix=$10
+
+# change working directory to outdir
+cd $outdir
 
 # output: all in the working directory, fixed names
-# Aligned.sortedByCoord.out.bam                 # alignments, standard sorted BAM, agreed upon formatting
-# Log.final.out                                 # mapping statistics to be used for QC, text, STAR formatting
-# Quant.genes.results                           # RSEM gene quantifications, tab separated text, RSEM formatting
-# Quant.isoforms.results                        # RSEM transcript quantifications, tab separated text, RSEM formatting
-# Quant.pdf                                     # RSEM diagnostic plots
-# Signal.{Unique,UniqueMultiple}.strand{+,-}.bw # 4 bigWig files for stranded data
-# Signal.{Unique,UniqueMultiple}.unstranded.bw  # 2 bigWig files for unstranded data
+# {outprefix}_Aligned.sortedByCoord.out.bam                 # alignments, standard sorted BAM, agreed upon formatting
+# {outprefix}_Log.final.out                                 # mapping statistics to be used for QC, text, STAR formatting
+# {outprefix}_Quant.genes.results                           # RSEM gene quantifications, tab separated text, RSEM formatting
+# {outprefix}_Quant.isoforms.results                        # RSEM transcript quantifications, tab separated text, RSEM formatting
+# {outprefix}_Quant.pdf                                     # RSEM diagnostic plots
+# {outprefix}_Signal.{Unique,UniqueMultiple}.strand{+,-}.bw # 4 bigWig files for stranded data
+# {outprefix}_Signal.{Unique,UniqueMultiple}.unstranded.bw  # 2 bigWig files for unstranded data
 
 # STAR parameters: common
 STARparCommon=" --genomeDir $STARgenomeDir  --readFilesIn $read1 $read2   --outSAMunmapped Within --outFilterType BySJout \
  --outSAMattributes NH HI AS NM MD    --outFilterMultimapNmax 20   --outFilterMismatchNmax 999   \
  --outFilterMismatchNoverReadLmax 0.04   --alignIntronMin 20   --alignIntronMax 1000000   --alignMatesGapMax 1000000   \
  --alignSJoverhangMin 8   --alignSJDBoverhangMin 1 --sjdbScore 1 --readFilesCommand zcat \
- --twopassMode Basic --twopass1readsN -1"
+ --twopassMode Basic --twopass1readsN -1 --outFileNamePrefix $outprefix"
 STARparRun=" --runThreadN $nThreadsSTAR --limitBAMsortRAM 60000000000"
 STARparBAM="--outSAMtype BAM SortedByCoordinate --quantMode TranscriptomeSAM"
 
@@ -78,11 +85,11 @@ STAR $STARparCommon $STARparRun $STARparBAM $STARparStrand
 # working subdirectory for this STAR run
 mkdir Signal
 
-echo STAR --runMode inputAlignmentsFromBAM   --inputBAMfile Aligned.sortedByCoord.out.bam --outWigType bedGraph $STARparWig --outFileNamePrefix ./Signal/ --outWigReferencesPrefix chr
-STAR --runMode inputAlignmentsFromBAM   --inputBAMfile Aligned.sortedByCoord.out.bam --outWigType bedGraph $STARparWig --outFileNamePrefix ./Signal/ --outWigReferencesPrefix chr
+echo STAR --runMode inputAlignmentsFromBAM   --inputBAMfile ${outprefix}Aligned.sortedByCoord.out.bam --outWigType bedGraph $STARparWig --outFileNamePrefix ./Signal/${shortprefix} --outWigReferencesPrefix chr
+STAR --runMode inputAlignmentsFromBAM   --inputBAMfile ${outprefix}Aligned.sortedByCoord.out.bam --outWigType bedGraph $STARparWig --outFileNamePrefix ./Signal/${shortprefix} --outWigReferencesPrefix chr
 
 # move the signal files from the subdirectory
-mv Signal/Signal*bg .
+mv Signal/${shortprefix}Signal*bg .
 
 
 
@@ -122,7 +129,7 @@ mv Signal/Signal*bg .
 #### prepare for RSEM: sort transcriptome BAM to ensure the order of the reads, to make RSEM output (not pme) deterministic
 trBAMsortRAM=40G
 
-mv Aligned.toTranscriptome.out.bam Tr.bam 
+mv ${outprefix}Aligned.toTranscriptome.out.bam Tr.bam 
 
 module load samtools/1.9
 
@@ -133,7 +140,7 @@ str_SE|unstr_SE)
       ;;
 str_PE|unstr_PE)
       # paired-end data, merge mates into one line before sorting, and un-merge after sorting
-      cat <( samtools view -H Tr.bam ) <( samtools view -@ $nThreadsRSEM Tr.bam | awk '{printf "%s", $0 " "; getline; print}' | sort -S $trBAMsortRAM -T ./ | tr ' ' '\n' ) | samtools view -@ $nThreadsRSEM -bS - > Aligned.toTranscriptome.out.bam
+      cat <( samtools view -H Tr.bam ) <( samtools view -@ $nThreadsRSEM Tr.bam | awk '{printf "%s", $0 " "; getline; print}' | sort -S $trBAMsortRAM -T ./ | tr ' ' '\n' ) | samtools view -@ $nThreadsRSEM -bS - > ${outprefix}Aligned.toTranscriptome.out.bam
       ;;
 esac
 
@@ -172,8 +179,8 @@ esac
 
 ###### RSEM command
 module load rsem/1.2.21
-echo rsem-calculate-expression $RSEMparCommon $RSEMparRun $RSEMparType Aligned.toTranscriptome.out.bam $RSEMrefDir Quant >& Log.rsem
-rsem-calculate-expression $RSEMparCommon $RSEMparRun $RSEMparType Aligned.toTranscriptome.out.bam $RSEMrefDir Quant >& Log.rsem
+echo rsem-calculate-expression $RSEMparCommon $RSEMparRun $RSEMparType ${outprefix}Aligned.toTranscriptome.out.bam $RSEMrefDir ${outprefix}Quant >& ${outprefix}Log.rsem
+rsem-calculate-expression $RSEMparCommon $RSEMparRun $RSEMparType ${outprefix}Aligned.toTranscriptome.out.bam $RSEMrefDir ${outprefix}Quant >& ${outprefix}Log.rsem
 
 ###### RSEM diagnostic plot creation
 # Notes:
@@ -182,5 +189,5 @@ rsem-calculate-expression $RSEMparCommon $RSEMparRun $RSEMparType Aligned.toTran
 
 module load r/3.6
 
-echo rsem-plot-model Quant Quant.pdf
-rsem-plot-model Quant Quant.pdf
+echo rsem-plot-model ${outprefix}Quant ${outprefix}Quant.pdf
+rsem-plot-model ${outprefix}Quant ${outprefix}Quant.pdf
