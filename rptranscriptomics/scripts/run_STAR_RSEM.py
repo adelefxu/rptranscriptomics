@@ -17,7 +17,7 @@ parser.add_argument("--sb_name")
 parser.add_argument("--sb_time", default = "12:0:0")
 parser.add_argument("--sb_mem", default = "64G")
 parser.add_argument("--sb_cpus", default = "2")
-parser.add_argument("--exclude", nargs=argparse.REMAINDER)
+parser.add_argument("--exclude", nargs=argparse.REMAINDER, default='none')
 args = parser.parse_args()
 
 # make sure output and log directories exist
@@ -45,7 +45,7 @@ for smp in sample:
     pair1 = glob.glob(os.path.join(args.trimmed_dir, smp, "*-trimmed-pair1.fastq.gz"))[0]
     pair2 = glob.glob(os.path.join(args.trimmed_dir, smp, "*-trimmed-pair2.fastq.gz"))[0]
     
-    call_script = f"{SR_script} {pair1} {pair2} {STARgenomeDir} {RSEMoutprefix} {dataType} {nThreadsSTAR} {nThreadsRSEM} {smp_dir} {os.path.join(smp_dir, smp+"_")} {smp+"_"}"
+    call_script = f"{SR_script} {pair1} {pair2} {STARgenomeDir} {RSEMoutprefix} {dataType} {nThreadsSTAR} {nThreadsRSEM} {smp_dir} {os.path.join(smp_dir, smp+'_')}"
     
     sb_cmd = f"sbatch {sb_defaults} -D {args.log_dir} -J {smp}_{args.sb_name} -t {args.sb_time} --mem={args.sb_mem} -c {args.sb_cpus} {call_script}"
     sb_sub_msg = subprocess.check_output(sb_cmd, shell=True).decode('ascii')

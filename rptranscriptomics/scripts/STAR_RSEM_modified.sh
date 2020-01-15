@@ -6,7 +6,8 @@
 # AX: changes from original
 # - added code to load necessary modules
 # - removed STARparsMeta from STAR command call b/c never initialized
-# - added command line arguments for output directory, output file prefix (full path), and output file short prefix
+# - added command line arguments for output directory and output file prefix (full path)
+# - instead of writing bedgraph output to a Signal subdirectory, just writing directly to output directory
 
 # Modified from https://github.com/ENCODE-DCC/long-rna-seq-pipeline/blob/master/DAC/STAR_RSEM.sh
 # Commit 313830c7c10e8567091131c40bdec2b9477627e0
@@ -26,7 +27,6 @@ nThreadsSTAR=$6 # number of threads for STAR
 nThreadsRSEM=$7 # number of threads for RSEM
 outdir=$8
 outprefix=$9
-shortprefix=$10
 
 # change working directory to outdir
 cd $outdir
@@ -83,13 +83,13 @@ STAR $STARparCommon $STARparRun $STARparBAM $STARparStrand
 
 ###### bedGraph generation, now decoupled from STAR alignment step
 # working subdirectory for this STAR run
-mkdir Signal
+# mkdir Signal
 
-echo STAR --runMode inputAlignmentsFromBAM   --inputBAMfile ${outprefix}Aligned.sortedByCoord.out.bam --outWigType bedGraph $STARparWig --outFileNamePrefix ./Signal/${shortprefix} --outWigReferencesPrefix chr
-STAR --runMode inputAlignmentsFromBAM   --inputBAMfile ${outprefix}Aligned.sortedByCoord.out.bam --outWigType bedGraph $STARparWig --outFileNamePrefix ./Signal/${shortprefix} --outWigReferencesPrefix chr
+echo STAR --runMode inputAlignmentsFromBAM   --inputBAMfile ${outprefix}Aligned.sortedByCoord.out.bam --outWigType bedGraph $STARparWig --outFileNamePrefix ${outprefix} --outWigReferencesPrefix chr
+STAR --runMode inputAlignmentsFromBAM   --inputBAMfile ${outprefix}Aligned.sortedByCoord.out.bam --outWigType bedGraph $STARparWig --outFileNamePrefix ${outprefix} --outWigReferencesPrefix chr
 
 # move the signal files from the subdirectory
-mv Signal/${shortprefix}Signal*bg .
+# mv Signal/${shortprefix}Signal*bg .
 
 
 
