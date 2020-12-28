@@ -33,7 +33,7 @@ skewer_path = "/labs/mbarna/users/adelexu/bin/skewer-0.1.127-linux-x86_64"
 adapter1 = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCACNNNNNNATCTCGTATGCCGTCTTCTGCTTG"
 adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT"
 
-sb_defaults = "-e %x-%j.e -o %x-%j.o -A mbarna -p batch"
+sb_defaults = "-e %j-%x.e -o %j-%x.o -A mbarna -p batch"
 
 # for each sample, make output subdirectory and call skewer
 for smp in sample:
